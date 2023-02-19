@@ -16,15 +16,21 @@
 
         public void AddUser(HubUser user)
         {
-            users.Add(user);
+            lock (users)
+            {
+                users.Add(user);
+            }
         }
 
         public void RemoveUser(string connectionId)
         {
-            var connection = Users.FirstOrDefault(x => x.ConnectionId == connectionId);
-            if (connection != null)
+            lock (users)
             {
-                users.Remove(connection);
+                var connection = users.FirstOrDefault(x => x.ConnectionId == connectionId);
+                if (connection != null)
+                {
+                    users.Remove(connection);
+                }
             }
         }
     }
