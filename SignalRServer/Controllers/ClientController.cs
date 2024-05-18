@@ -1,54 +1,45 @@
-﻿namespace SignalRServer.Controllers
+﻿namespace SignalRServer.Controllers;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using SignalRServer.Handler;
+
+[ApiController]
+public class ClientController(
+    //IRepository repository, 
+    IHubContext<MyHub> hubContext,
+    IClientHandler clientHandler,
+    ILogger<ClientController> logger) : ControllerBase
 {
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.AspNetCore.SignalR;
-    using SignalRServer.Handler;
+    //private readonly IRepository repository;
+    private readonly ILogger<ClientController> logger = logger;
+    private readonly IHubContext<MyHub> hubContext = hubContext;
+    private readonly IClientHandler clientHandler = clientHandler;
 
-    [ApiController]
-    public class ClientController : ControllerBase
+    [HttpPost]
+    [Route("api/AddMessage")]
+    public async Task<IActionResult> IndividualMessage(MessageDto message)
     {
-        //private readonly IRepository repository;
-        private readonly ILogger<ClientController> logger;
-        private readonly IHubContext<MyHub> hubContext;
-        private readonly IClientHandler clientHandler;
-
-        public ClientController(
-            //IRepository repository, 
-            IHubContext<MyHub> hubContext,
-            IClientHandler clientHandler,
-            ILogger<ClientController> logger)
+        try
         {
-            //this.repository = repository;
-            this.hubContext = hubContext;
-            this.clientHandler = clientHandler;
-            this.logger = logger;
+            var user = clientHandler
+                .Users
+                .SingleOrDefault(x => x.UserId.Equals(message.UserId));
+
+            if (user != null)
+            {
+                await hubContext.Clients.Client(user.ConnectionId).SendAsync("broadcast", message.Message);
+            }
+            else 
+            {
+                //repository.PersistMessage(message);
+            }
+            return Ok();
         }
-
-        [HttpPost]
-        [Route("api/Alarm/AddMobile")]
-        public async Task<IActionResult> IndividualMessage(MessageDto message)
+        catch (Exception ex)
         {
-            try
-            {
-                var user = clientHandler
-                    .Users
-                    .SingleOrDefault(x => x.UserId.Equals(message.UserId));
-
-                if (user != null)
-                {
-                    await hubContext.Clients.Client(user.ConnectionId).SendAsync("broadcast", message.Message);
-                }
-                else 
-                {
-                    //repository.PersistMessage(message);
-                }
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, ex.Message);
-                return BadRequest(ex.Message);
-            }
+            logger.LogError(ex, "{Message} - {StackTrace}", ex.Message, ex.StackTrace);
+            return BadRequest(ex.Message);
         }
     }
 }

@@ -1,9 +1,8 @@
-﻿namespace SignalRServer.Handler
+﻿namespace SignalRServer.Handler;
+
+public interface IClientHandler
 {
-    public interface IClientHandler
-    {
-        List<HubUser> Users { get; set; }
-        void AddUser(HubUser user);
-        void RemoveUser(string connectionId);
-    }
+    List<HubUser> Users { get; set; }
+    void AddUser(HubUser user);
+    void RemoveUser(string connectionId);
 }

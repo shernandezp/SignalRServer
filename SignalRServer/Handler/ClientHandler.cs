@@ -1,36 +1,33 @@
-﻿namespace SignalRServer.Handler
+﻿namespace SignalRServer.Handler;
+
+public class ClientHandler : IClientHandler
 {
-    public class ClientHandler : IClientHandler
+    private List<HubUser> users;
+    public List<HubUser> Users
     {
-        private List<HubUser> users;
-        public List<HubUser> Users
-        {
-            get { return users; }
-            set { users = value; }
-        }
+        get { return users; }
+        set { users = value; }
+    }
 
-        public ClientHandler()
-        {
-            users = new List<HubUser>();
-        }
+    public ClientHandler()
+        => users = [];
 
-        public void AddUser(HubUser user)
+    public void AddUser(HubUser user)
+    {
+        lock (users)
         {
-            lock (users)
+            users.Add(user);
+        }
+    }
+
+    public void RemoveUser(string connectionId)
+    {
+        lock (users)
+        {
+            var connection = users.FirstOrDefault(x => x.ConnectionId == connectionId);
+            if (connection != null)
             {
-                users.Add(user);
-            }
-        }
-
-        public void RemoveUser(string connectionId)
-        {
-            lock (users)
-            {
-                var connection = users.FirstOrDefault(x => x.ConnectionId == connectionId);
-                if (connection != null)
-                {
-                    users.Remove(connection);
-                }
+                users.Remove(connection);
             }
         }
     }

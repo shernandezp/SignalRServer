@@ -1,72 +1,48 @@
-namespace SignalRServer.Controllers
+namespace SignalRServer.Controllers;
+
+using Microsoft.AspNetCore.SignalR;
+using SignalRServer.Handler;
+
+public class MyHub(
+    //IRepository repository,
+    ILogger<MyHub> logger,
+    IClientHandler clientHandler) : Hub
 {
-    using Microsoft.AspNetCore.SignalR;
-    using SignalRServer.Handler;
+    private readonly IEnumerable<HubUser> users = clientHandler.Users;
 
-    public class MyHub : Hub
+    public void OnConnected(string userId)
     {
-        //private readonly IRepository repository;
-        private readonly ILogger<MyHub> logger;
-        private readonly IClientHandler clientHandler;
-        private readonly IEnumerable<HubUser> users;
-
-        public MyHub(
-            //IRepository repository,
-            ILogger<MyHub> logger,
-            IClientHandler clientHandler)
+        ExceptionHandlers.HandleException(() =>
         {
-            //this.repository = repository;
-            users = clientHandler.Users;
-            this.clientHandler = clientHandler;
-            this.logger = logger;
-        }
-
-        public void OnConnected(string userId)
-        {
-            try
+            if (!users.Any(w => w.UserId.Equals(userId)))
             {
-                if (!users.Any(w => w.UserId.Equals(userId)))
+                var user = new HubUser
                 {
-                    var user = new HubUser
-                    {
-                        UserId = userId,
-                        ConnectionId = Context.ConnectionId
-                    };
-                    clientHandler.AddUser(user);
-                }
+                    UserId = userId,
+                    ConnectionId = Context.ConnectionId
+                };
+                clientHandler.AddUser(user);
             }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, ex.Message);
-            }
-        }
-
-        public override async Task OnDisconnectedAsync(Exception? exception)
-        {
-            try
-            {
-                if (users.Any(x => x.ConnectionId == Context.ConnectionId))
-                {
-                    clientHandler.RemoveUser(Context.ConnectionId);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, ex.Message);
-            }
-            await base.OnDisconnectedAsync(exception);
-        }
-
-        /*public async Task SaveMessage(string message)
-        {
-            try
-            {
-                await repository.SaveMessage(message);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, ex.Message);
-            }
-        }*/
+        }, logger);
     }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        ExceptionHandlers.HandleException(() =>
+        {
+            if (users.Any(x => x.ConnectionId == Context.ConnectionId))
+            {
+                clientHandler.RemoveUser(Context.ConnectionId);
+            }
+        }, logger);
+        await base.OnDisconnectedAsync(exception);
+    }
+
+    /*public async Task SaveMessage(string message)
+    {
+        await ExceptionHandlers.HandleExceptionAsync(async () =>
+        {
+            await repository.SaveMessage(message);
+        }, logger);
+    }*/
 }
